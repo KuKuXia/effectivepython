@@ -16,11 +16,8 @@
 
 # Reproduce book environment
 import random
-random.seed(1234)
 
-import logging
-from pprint import pprint
-from sys import stdout as STDOUT
+random.seed(1234)
 
 # Write all output to a temporary directory
 import atexit
@@ -37,14 +34,15 @@ OLD_CWD = os.getcwd()
 atexit.register(lambda: os.chdir(OLD_CWD))
 os.chdir(TEST_DIR.name)
 
+
 def close_open_files():
     everything = gc.get_objects()
     for obj in everything:
         if isinstance(obj, io.IOBase):
             obj.close()
 
-atexit.register(close_open_files)
 
+atexit.register(close_open_files)
 
 # Example 1
 from urllib.parse import parse_qs
@@ -53,12 +51,10 @@ my_values = parse_qs('red=5&blue=0&green=',
                      keep_blank_values=True)
 print(repr(my_values))
 
-
 # Example 2
 print('Red:     ', my_values.get('red'))
 print('Green:   ', my_values.get('green'))
 print('Opacity: ', my_values.get('opacity'))
-
 
 # Example 3
 # For query string 'red=5&blue=0&green='
@@ -69,7 +65,6 @@ print(f'Red:     {red!r}')
 print(f'Green:   {green!r}')
 print(f'Opacity: {opacity!r}')
 
-
 # Example 4
 red = int(my_values.get('red', [''])[0] or 0)
 green = int(my_values.get('green', [''])[0] or 0)
@@ -77,7 +72,6 @@ opacity = int(my_values.get('opacity', [''])[0] or 0)
 print(f'Red:     {red!r}')
 print(f'Green:   {green!r}')
 print(f'Opacity: {opacity!r}')
-
 
 # Example 5
 red_str = my_values.get('red', [''])
@@ -89,7 +83,6 @@ opacity = int(opacity_str[0]) if opacity_str[0] else 0
 print(f'Red:     {red!r}')
 print(f'Green:   {green!r}')
 print(f'Opacity: {opacity!r}')
-
 
 # Example 6
 green_str = my_values.get('green', [''])

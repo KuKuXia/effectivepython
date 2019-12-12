@@ -16,11 +16,10 @@
 
 # Reproduce book environment
 import random
+
 random.seed(1234)
 
 import logging
-from pprint import pprint
-from sys import stdout as STDOUT
 
 # Write all output to a temporary directory
 import atexit
@@ -37,27 +36,26 @@ OLD_CWD = os.getcwd()
 atexit.register(lambda: os.chdir(OLD_CWD))
 os.chdir(TEST_DIR.name)
 
+
 def close_open_files():
     everything = gc.get_objects()
     for obj in everything:
         if isinstance(obj, io.IOBase):
             obj.close()
 
-atexit.register(close_open_files)
 
+atexit.register(close_open_files)
 
 # Example 1
 a = 0b10111011
 b = 0xc5f
 print('Binary is %d, hex is %d' % (a, b))
 
-
 # Example 2
 key = 'my_var'
 value = 1.234
 formatted = '%-10s = %.2f' % (key, value)
 print(formatted)
-
 
 # Example 3
 try:
@@ -67,7 +65,6 @@ except:
 else:
     assert False
 
-
 # Example 4
 try:
     reordered_string = '%.2f = %-10s' % (key, value)
@@ -75,7 +72,6 @@ except:
     logging.exception('Expected')
 else:
     assert False
-
 
 # Example 5
 pantry = [
@@ -86,7 +82,6 @@ pantry = [
 for i, (item, count) in enumerate(pantry):
     print('#%d: %-10s = %.2f' % (i, item, count))
 
-
 # Example 6
 for i, (item, count) in enumerate(pantry):
     print('#%d: %-10s = %d' % (
@@ -94,19 +89,16 @@ for i, (item, count) in enumerate(pantry):
         item.title(),
         round(count)))
 
-
 # Example 7
 template = '%s loves food. See %s cook.'
 name = 'Max'
 formatted = template % (name, name)
 print(formatted)
 
-
 # Example 8
 name = 'brad'
 formatted = template % (name.title(), name.title())
 print(formatted)
-
 
 # Example 9
 key = 'my_var'
@@ -122,18 +114,16 @@ reordered = '%(key)-10s = %(value).2f' % {
 
 assert old_way == new_way == reordered
 
-
 # Example 10
 name = 'Max'
 
 template = '%s loves food. See %s cook.'
-before = template % (name, name)   # Tuple
+before = template % (name, name)  # Tuple
 
 template = '%(name)s loves food. See %(name)s cook.'
 after = template % {'name': name}  # Dictionary
 
 assert before == after
-
 
 # Example 11
 for i, (item, count) in enumerate(pantry):
@@ -150,12 +140,10 @@ for i, (item, count) in enumerate(pantry):
 
     assert before == after
 
-
 # Example 12
 soup = 'lentil'
 formatted = 'Today\'s soup is %(soup)s.' % {'soup': soup}
 print(formatted)
-
 
 # Example 13
 menu = {
@@ -169,7 +157,6 @@ template = ('Today\'s soup is %(soup)s, '
 formatted = template % menu
 print(formatted)
 
-
 # Example 14
 a = 1234.5678
 formatted = format(a, ',.2f')
@@ -179,7 +166,6 @@ b = 'my string'
 formatted = format(b, '^20s')
 print('*', formatted, '*')
 
-
 # Example 15
 key = 'my_var'
 value = 1.234
@@ -187,26 +173,21 @@ value = 1.234
 formatted = '{} = {}'.format(key, value)
 print(formatted)
 
-
 # Example 16
 formatted = '{:<10} = {:.2f}'.format(key, value)
 print(formatted)
-
 
 # Example 17
 print('%.2f%%' % 12.5)
 print('{} replaces {{}}'.format(1.23))
 
-
 # Example 18
 formatted = '{1} = {0}'.format(key, value)
 print(formatted)
 
-
 # Example 19
 formatted = '{0} loves food. See {0} cook.'.format(name)
 print(formatted)
-
 
 # Example 20
 for i, (item, count) in enumerate(pantry):
@@ -222,19 +203,17 @@ for i, (item, count) in enumerate(pantry):
 
     assert old_style == new_style
 
-
 # Example 21
 formatted = 'First letter is {menu[oyster][0]!r}'.format(
     menu=menu)
 print(formatted)
-
 
 # Example 22
 old_template = (
     'Today\'s soup is %(soup)s, '
     'buy one get two %(oyster)s oysters, '
     'and our special entrée is %(special)s.')
-old_formatted = template % {
+old_formatted = old_template % {
     'soup': 'lentil',
     'oyster': 'kumamoto',
     'special': 'schnitzel',
@@ -252,7 +231,6 @@ new_formatted = new_template.format(
 
 assert old_formatted == new_formatted
 
-
 # Example 23
 key = 'my_var'
 value = 1.234
@@ -260,26 +238,23 @@ value = 1.234
 formatted = f'{key} = {value}'
 print(formatted)
 
-
 # Example 24
 formatted = f'{key!r:<10} = {value:.2f}'
 print(formatted)
 
-
 # Example 25
 f_string = f'{key:<10} = {value:.2f}'
 
-c_tuple  = '%-10s = %.2f' % (key, value)
+c_tuple = '%-10s = %.2f' % (key, value)
 
 str_args = '{:<10} = {:.2f}'.format(key, value)
 
-str_kw   = '{key:<10} = {value:.2f}'.format(key=key, value=value)
+str_kw = '{key:<10} = {value:.2f}'.format(key=key, value=value)
 
-c_dict   = '%(key)-10s = %(value).2f' % {'key': key, 'value': value}
+c_dict = '%(key)-10s = %(value).2f' % {'key': key, 'value': value}
 
 assert c_tuple == c_dict == f_string
 assert str_args == str_kw == f_string
-
 
 # Example 26
 for i, (item, count) in enumerate(pantry):
@@ -293,17 +268,15 @@ for i, (item, count) in enumerate(pantry):
         item.title(),
         round(count))
 
-    f_string = f'#{i+1}: {item.title():<10s} = {round(count)}'
+    f_string = f'#{i + 1}: {item.title():<10s} = {round(count)}'
 
     assert old_style == new_style == f_string
 
-
 # Example 27
 for i, (item, count) in enumerate(pantry):
-    print(f'#{i+1}: '
+    print(f'#{i + 1}: '
           f'{item.title():<10s} = '
           f'{round(count)}')
-
 
 # Example 28
 places = 3

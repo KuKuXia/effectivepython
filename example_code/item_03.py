@@ -16,11 +16,10 @@
 
 # Reproduce book environment
 import random
+
 random.seed(1234)
 
 import logging
-from pprint import pprint
-from sys import stdout as STDOUT
 
 # Write all output to a temporary directory
 import atexit
@@ -37,20 +36,20 @@ OLD_CWD = os.getcwd()
 atexit.register(lambda: os.chdir(OLD_CWD))
 os.chdir(TEST_DIR.name)
 
+
 def close_open_files():
     everything = gc.get_objects()
     for obj in everything:
         if isinstance(obj, io.IOBase):
             obj.close()
 
-atexit.register(close_open_files)
 
+atexit.register(close_open_files)
 
 # Example 1
 a = b'h\x65llo'
 print(list(a))
 print(a)
-
 
 # Example 2
 a = 'a\u0300 propos'
@@ -66,6 +65,7 @@ def to_str(bytes_or_str):
         value = bytes_or_str
     return value  # Instance of str
 
+
 print(repr(to_str(b'foo')))
 print(repr(to_str('bar')))
 
@@ -78,14 +78,13 @@ def to_bytes(bytes_or_str):
         value = bytes_or_str
     return value  # Instance of bytes
 
+
 print(repr(to_bytes(b'foo')))
 print(repr(to_bytes('bar')))
-
 
 # Example 5
 print(b'one' + b'two')
 print('one' + 'two')
-
 
 # Example 6
 try:
@@ -95,7 +94,6 @@ except:
 else:
     assert False
 
-
 # Example 7
 try:
     'one' + b'two'
@@ -104,11 +102,9 @@ except:
 else:
     assert False
 
-
 # Example 8
 assert b'red' > b'blue'
 assert 'red' > 'blue'
-
 
 # Example 9
 try:
@@ -118,7 +114,6 @@ except:
 else:
     assert False
 
-
 # Example 10
 try:
     assert b'blue' < 'red'
@@ -127,15 +122,12 @@ except:
 else:
     assert False
 
-
 # Example 11
 print(b'foo' == 'foo')
-
 
 # Example 12
 print(b'red %s' % b'blue')
 print('red %s' % 'blue')
-
 
 # Example 13
 try:
@@ -145,10 +137,8 @@ except:
 else:
     assert False
 
-
 # Example 14
 print('red %s' % b'blue')
-
 
 # Example 15
 try:
@@ -159,28 +149,28 @@ except:
 else:
     assert False
 
-
 # Example 16
 with open('data.bin', 'wb') as f:
     f.write(b'\xf1\xf2\xf3\xf4\xf5')
-
 
 # Example 17
 try:
     # Silently force UTF-8 here to make sure this test fails on
     # all platforms. cp1252 considers these bytes valid on Windows.
     real_open = open
+
+
     def open(*args, **kwargs):
         kwargs['encoding'] = 'utf-8'
         return real_open(*args, **kwargs)
-    
+
+
     with open('data.bin', 'r') as f:
         data = f.read()
 except:
     logging.exception('Expected')
 else:
     assert False
-
 
 # Example 18
 # Restore the overloaded open above.
@@ -190,7 +180,6 @@ with open('data.bin', 'rb') as f:
     data = f.read()
 
 assert data == b'\xf1\xf2\xf3\xf4\xf5'
-
 
 # Example 19
 with open('data.bin', 'r', encoding='cp1252') as f:
