@@ -16,11 +16,10 @@
 
 # Reproduce book environment
 import random
+
 random.seed(1234)
 
 import logging
-from pprint import pprint
-from sys import stdout as STDOUT
 
 # Write all output to a temporary directory
 import atexit
@@ -37,14 +36,15 @@ OLD_CWD = os.getcwd()
 atexit.register(lambda: os.chdir(OLD_CWD))
 os.chdir(TEST_DIR.name)
 
+
 def close_open_files():
     everything = gc.get_objects()
     for obj in everything:
         if isinstance(obj, io.IOBase):
             obj.close()
 
-atexit.register(close_open_files)
 
+atexit.register(close_open_files)
 
 # Example 1
 try:
@@ -56,18 +56,15 @@ except:
 else:
     assert False
 
-
 # Example 2
 oldest = car_ages_descending[0]
 second_oldest = car_ages_descending[1]
 others = car_ages_descending[2:]
 print(oldest, second_oldest, others)
 
-
 # Example 3
 oldest, second_oldest, *others = car_ages_descending
 print(oldest, second_oldest, others)
-
 
 # Example 4
 oldest, *others, youngest = car_ages_descending
@@ -75,7 +72,6 @@ print(oldest, youngest, others)
 
 *others, second_youngest, youngest = car_ages_descending
 print(youngest, second_youngest, others)
-
 
 # Example 5
 try:
@@ -87,7 +83,6 @@ except:
 else:
     assert False
 
-
 # Example 6
 try:
     # This will not compile
@@ -98,11 +93,10 @@ except:
 else:
     assert False
 
-
 # Example 7
 car_inventory = {
-	'Downtown': ('Silver Shadow', 'Pinto', 'DMC'),
-	'Airport': ('Skyline', 'Viper', 'Gremlin', 'Nova'),
+    'Downtown': ('Silver Shadow', 'Pinto', 'DMC'),
+    'Airport': ('Skyline', 'Viper', 'Gremlin', 'Nova'),
 }
 
 ((loc1, (best1, *rest1)),
@@ -111,12 +105,10 @@ car_inventory = {
 print(f'Best at {loc1} is {best1}, {len(rest1)} others')
 print(f'Best at {loc2} is {best2}, {len(rest2)} others')
 
-
 # Example 8
 short_list = [1, 2]
 first, second, *rest = short_list
 print(first, second, rest)
-
 
 # Example 9
 it = iter(range(1, 3))
@@ -126,10 +118,10 @@ print(f'{first} and {second}')
 
 # Example 10
 def generate_csv():
-	yield ('Date', 'Make' , 'Model', 'Year', 'Price')
-	for i in range(100):
-		yield ('2019-03-25', 'Honda', 'Fit' , '2010', '$3400')
-		yield ('2019-03-26', 'Ford', 'F150' , '2008', '$2400')
+    yield ('Date', 'Make', 'Model', 'Year', 'Price')
+    for i in range(100):
+        yield ('2019-03-25', 'Honda', 'Fit', '2010', '$3400')
+        yield ('2019-03-26', 'Ford', 'F150', '2008', '$2400')
 
 
 # Example 11
@@ -138,7 +130,6 @@ header = all_csv_rows[0]
 rows = all_csv_rows[1:]
 print('CSV Header:', header)
 print('Row count: ', len(rows))
-
 
 # Example 12
 it = generate_csv()
