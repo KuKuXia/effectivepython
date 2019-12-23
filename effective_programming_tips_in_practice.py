@@ -194,11 +194,192 @@ def pickle_usage():
     print(b)
 
 
+# 可迭代与迭代器对象
+# 迭代器对象WeatherIterator，next方法每次返回一个城市气温
+# 可迭代对象WeatherIterable，__iter__方法返回一个迭代器对象
+def iterator_object():
+    import requests
+    from collections import Iterable, Iterator
+
+    class WeatherIterator(Iterator):
+        def __init__(self, cities):
+            self.cities = cities
+            self.index = 0
+
+        def getweather(self, city):
+            r = requests.get(u'http://wthrcdn.etouch.cn/weather_mini?city=' + city)
+            data = r.json()['data']['forecast'][0]
+            return '%s: %s, %s' % (city, data['low'], data['high'])
+
+        def __next__(self):
+            if self.index == len(self.cities):
+                raise StopIteration
+            city = self.cities[self.index]
+            self.index += 1
+            return self.getweather(city)
+
+    class WeatherIterable(Iterable):
+        def __init__(self, cities):
+            self.cities = cities
+
+        def __iter__(self):
+            return WeatherIterator(self.cities)
+
+    for x in WeatherIterable([u'北京', u'济南', u'上海', u'杭州', u'深圳']):
+        print(x)
+
+
+# 使用生成器实现可迭代和迭代器对象
+def generator_object():
+    class PrimeNumber():
+        def __init__(self, start, end):
+            self.start = start
+            self.end = end
+
+        def isPrimeNum(self, k):
+            if k < 2:
+                return False
+            for i in range(2, k):
+                if k % i == 0:
+                    return False
+            return True
+
+        def __iter__(self):
+            for k in range(self.start, self.end + 1):
+                if self.isPrimeNum(k):
+                    yield k
+
+    for x in PrimeNumber(1, 100):
+        print(x)
+
+
+# 如何进行和实现反向迭代
+# 方法：实现方向迭代协议的__reversed__方法， 它返回一个方向迭代器
+def reversed_iterater():
+    class FloatRange:
+        def __init__(self, start, end, step=0.1):
+            self.start = start
+            self.end = end
+            self.step = step
+
+        def __iter__(self):
+            t = self.start
+            while t <= self.end:
+                yield t
+                t += self.step
+
+        def __reversed__(self):
+            t = self.end
+            while t >= self.start:
+                yield t
+                t -= self.step
+
+    for x in FloatRange(1, 4, 0.5):
+        print(x, end=' ')
+    print()
+
+    for x in reversed(FloatRange(1, 4, 0.5)):
+        print(x, end=' ')
+    print()
+
+
+# 如何对迭代器进行切片操作
+# 使用标准库中的itertools.islice，它能返回一个迭代对象切片的生成器
+def slicing_iterator():
+    from itertools import islice
+    file = open('linux_kernel_coding_style', 'rb')
+    # 获取文件100到110行内容
+    print('100 to 110 lines')
+    for line in islice(file, 100, 110):
+        print(line)
+
+    # 获取文件前10行内容
+    print("the first 10 lines")
+    for line in islice(file, 10):
+        print(line)
+
+    print('2200 to the last line')
+    # 获取文件00到最后的内容
+    for line in islice(file, 930, None):
+        print(line)
+
+
+# 如何在一个for语句中迭代多个可迭代对象
+# 方法：使用内置函数zip，它能将多个可迭代对象合并，每次迭代返回一个元组
+# 方法2：使用标准库中的itertools.chain，它能将多个可迭代对象连接
+def multiple_iterators():
+    # 计算多个科目的总分
+    def sum_of_multi_subject():
+        chinese = [randint(60, 100) for _ in range(40)]
+        english = [randint(60, 100) for _ in range(40)]
+        math = [randint(60, 100) for _ in range(40)]
+        art = [randint(60, 100) for _ in range(40)]
+
+        # 并行处理多个迭代对象，进行加法运算
+        total_scores = []
+        for scores in zip(chinese, english, math, art):
+            total_scores.append(sum(scores))
+        print(total_scores)
+
+    # 选出多个班级中90分以上的人
+    def score_greater_than_90():
+        from itertools import chain
+        class_1 = [randint(60, 100) for _ in range(40)]
+        class_2 = [randint(60, 100) for _ in range(50)]
+        class_3 = [randint(60, 100) for _ in range(60)]
+        class_4 = [randint(60, 100) for _ in range(70)]
+
+        # 将多个迭代对象串行连接，逐个进行计算
+        result = []
+        for x in chain(class_1, class_2, class_3, class_4):
+            if x > 90:
+                result.append(x)
+
+        print(result)
+
+    sum_of_multi_subject()
+    score_greater_than_90()
+
+
+# 如何拆分含有多种分隔符的字符串
+# 方法1：连续使用str.split()方法，每次处理一种分隔符号
+# 方法2：使用正则表达式的re.split()方法，一次性拆分字符串
+def split_multi_seperators():
+    data = 'ab;cj|efg|hi,,jkl||mn\topq;rst,uvw\txyz'
+
+    # 连续依次使用split方法
+    def seperate_using_split_multiple_times(data, ds):
+        # 注意，在python3中map返回的是一个迭代器对象，如果要得到结果需要list一下
+        res = [data]
+        for d in ds:
+            t = []
+            list(map(lambda x: t.extend(x.split(d)), res))
+            res = t
+        # 清楚空字符串
+        res = [x for x in res if x]
+        print(res)
+
+    # 使用正则表达式的方法一次性同时处理多个分隔符
+    def re_split():
+        import re
+        result = re.split(r'[,;\t|]+', data)
+        print(result)
+
+    seperate_using_split_multiple_times(data, ';,|\t')
+    re_split()
+
+
 if __name__ == '__main__':
-    tuple_naming()
-    element_couonter()
-    sort_by_value()
-    common_keys_between_dictionaries()
+    # tuple_naming()
+    # element_couonter()
+    # sort_by_value()
+    # common_keys_between_dictionaries()
     # keep_dict_ordered()
     # user_history()
-    pickle_usage()
+    # pickle_usage()
+    # iterator_object()
+    # generator_object()
+    # reversed_iterater()
+    # slicing_iterator()
+    # multiple_iterators()
+    split_multi_seperators()
