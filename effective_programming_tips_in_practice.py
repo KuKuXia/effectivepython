@@ -369,6 +369,103 @@ def split_multi_seperators():
     re_split()
 
 
+# 如何判断字符串a是否以字符串b开头或者结尾
+# 方法：使用字符串的str.startswith()和str.endswith()方法
+# 注意：多个匹配时参数使用元组
+def string_start_or_end():
+    import os, stat
+    files = [name for name in os.listdir('./test_dir/') if name.endswith(('.sh', '.py'))]
+    print(files)
+    for file in files:
+        file_st_mode = os.stat('./test_dir/' + file).st_mode
+        print("Before: ", oct(file_st_mode))
+        os.chmod('./test_dir/' + file, file_st_mode | stat.S_IXUSR)
+        file_st_mode = os.stat('./test_dir/' + file).st_mode
+        print("After: ", oct(file_st_mode))
+
+
+# 如何调整字符串中文本的格式
+# 使用正则表达式re.sub()方法做字符串替换，利用正则表达式的捕获组，捕获每个部分内容，在替换字符串中调整各个捕获组的顺序
+def change_time_format():
+    import re
+    data = '2016-05-23 10:59:27 status half-configured libc-bin:amd64 2.19-0ubuntu6.5'
+    changed_data_1 = re.sub('(\d{4})-(\d{2})-(\d{2})', r'\2/\3/\1', data)
+    changed_data_2 = re.sub('(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})', r'\g<month>/\g<day>/\g<year>', data)
+    print(data)
+    print(changed_data_1)
+    print(changed_data_2)
+
+
+# 如何将 多个小字符串拼接成一个大的字符串
+# 方法1：迭代列表，连续使用+操作一次拼接每一个字符串
+# 方法2：使用str.join()方法，更加快速的拼接列表中的所有字符串
+def join_elements_of_list():
+    data = [1, 2, 3, 4, 5, 6, 67]
+
+    # 使用+方法一个一个连接，中间会产生多个中间变量，效率低
+    s = ''
+    for i in data:
+        s += str(i)
+    print(s)
+    # 使用join方法快速连接
+    print(''.join(map(str, data)))
+
+
+# 如何将字符串进行左右、居中对齐
+# 方法1：使用字符串额str.ljust()，str.rjust(),str.center()进行左右、居中对齐
+# 方法2：使用format()方法，传递类似'<20','>20','^20'参数完成同样任务
+def str_just():
+    data = 'abc'
+    print(data.ljust(20, '-'))
+    print(data.rjust(20, '*'))
+    print(data.center(20, '%'))
+    print(format(data, '>20'))
+    print(format(data, '<20'))
+    print(format(data, '^20'))
+
+    data = {'chinese': 12,
+            'english_123': 123,
+            'art': 12,
+            'math_123': 123}
+    w = max(list(map(len, data.keys())))
+    for k in data:
+        print(k.ljust(w, ' '), ':', data[k])
+
+
+# 如何去掉字符串中不需要的字符串
+# 方法1：字符串strip(),rstrip(),lstrip()方法
+# 方法2: 使用切片+拼接的方式，删除特定区间的字符
+# 方法3：字符串的replace()方法或者正则表达式re.sub删除任意位置字符
+# 方法4：字符串translate()方法，可以同时删除多种不同字符
+def strip_chars():
+    data = '--+++ab90***bc==--++   '
+    # 利用strip删除左右两边的字符
+    print(data.strip())
+    print(data.lstrip())
+    print(data.rstrip())
+    print(data.strip('-+'))
+
+    # 利用切片选择需要位置的字符
+    print(data[5:9] + data[12:14])
+
+    # 利用replace删除任意位置的单个字符
+    data = '\t123\t123\tab\tasjfl\t'
+    print(data.replace('\t', ''))
+
+    # 利用正则表达式re。sub删除任意位置字符
+    import re
+    data = '\tas\rasdfklj\tasd\tsdf\rjdl\tasljd\rsd'
+    print(re.sub('[\t\r]', '', data))
+
+    # 利用str的translate方法
+    data = 'abc12345xyz'
+    print(data.translate(str.maketrans('abcxyz', 'xyzabc')))
+
+    data = 'abd\rbasdj\tsdjl\tsdasdf\n'
+    print('read this short text'.translate(str.maketrans('aeiou', '     ')))
+    print(data.translate(str.maketrans('\r\t\n', '   ')))
+
+
 if __name__ == '__main__':
     # tuple_naming()
     # element_couonter()
@@ -382,4 +479,9 @@ if __name__ == '__main__':
     # reversed_iterater()
     # slicing_iterator()
     # multiple_iterators()
-    split_multi_seperators()
+    # split_multi_seperators()
+    # string_start_or_end()
+    # change_time_format()
+    # join_elements_of_list()
+    # str_just()
+    strip_chars()
