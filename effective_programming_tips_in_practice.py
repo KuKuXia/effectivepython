@@ -466,6 +466,130 @@ def strip_chars():
     print(data.translate(str.maketrans('\r\t\n', '   ')))
 
 
+# 如何读取文本文件
+# 字符串语义发生了变化
+# Python2      Python3
+# str      >>    bytes
+# unicode  >>    str
+# Python2: 写入文件前对unicode编码，读入文件后对二进制字符串解码
+# Python3: open函数指定't'的文本模式，endcoding指定编码格式
+def open_sace_files():
+    s = u'你好'
+    encoded_s_1 = s.encode('utf8')
+    encoded_s_2 = s.encode('gbk')
+    print(encoded_s_1)
+    print(encoded_s_2)
+    # 注意编解码需要一致
+    decoded_s_1 = encoded_s_1.decode('utf8')
+    decoded_s_2 = encoded_s_2.decode('gbk')
+    print(decoded_s_1)
+    print(decoded_s_2)
+
+    def py2_save_file():
+        # 在Python2中运行
+        file = open('test_dir/py2.txt', 'w')
+        file.write(s.encode('gbk'))
+        file.close()
+
+        file = open('test_dir/py2.txt', 'r')
+        s_loaded = file.read()
+        print(s_loaded)
+        # 需要解码
+        # print(s_loaded.decode('gbk'))
+
+    def py3_save_file():
+        file = open('test_dir/py2.txt', 'wt', encoding='utf8')
+        file.write(u'你好，我爱编程！')
+        file.close()
+
+        file = open('test_dir/py2.txt', 'rt', encoding='utf8')
+        s_loaded = file.read()
+        print(s_loaded)
+
+    py3_save_file()
+
+
+# 如何设置文件的缓冲
+# 将文件内容写入到硬件设备时，使用系统调用，这类I/O操作的时间很长，为了减少
+# I/O操作次数，文件通常使用缓冲区，有足够多的数据才进行系统调用，缓冲行为分
+# 为：
+# 全缓冲: open()函数的buffering设置为大于1的整数n，n为缓冲区大小
+# 行缓冲: open()函数的buffering设置为1
+# 无缓冲:open函数的buffering设置为0
+
+def set_file_buffer():
+    # linux下测试
+    file = open('test_dir/file_buffer.txt', 'w', buffering=1000)
+    file.write('abc')
+    file.write('+' * 997)
+
+
+# 如何访问文件的状态
+# 系统调用：标准库中os模块下的三个系统调用stat，fstat，lstat获取文件状态
+# 快捷函数：标准库中os.path下一些函数，使用起来更加简洁
+def file_status():
+    import os
+    print(os.stat('test_dir/a.sh'))
+    print(os.path.isdir('test_dir'))
+    # 获取文件的绝对路径前半部分
+    print(os.path.abspath('test_dir/a.sh').split('.')[0])
+
+
+# 如何使用临时文件
+# 使用标准库中的tempfile下的TemporaryFile, NamedTemporaryFile
+def temporary_file():
+    from tempfile import TemporaryFile, NamedTemporaryFile
+    # 文件系统中没有名字，找不到，只能在一个进程中访问
+    file = TemporaryFile()
+    file.write(b'abdef' * 100000)
+    file.seek(0)
+    print(file.read(100))
+    print('-' * 20)
+    print(file.read(100))
+
+    # 文件系统中有名字，可以找到，将delete参数设置为false，即使当前进程不需要改临时文件，也不会立即删除该文件，因此可以设置让多个进程同时访问
+    named_temp_file = NamedTemporaryFile(delete=False)
+    named_temp_file.write(b'abc' * 100)
+    print(named_temp_file.name)
+
+
+# 如何读取csv数据
+# 使用标准库中的csv模块，可以使用其中reader和writer完成csv文件读写
+def read_csv_demo():
+    import csv
+
+    with open('test_dir/card.csv', encoding='utf8', mode='rt') as file:
+        reader = csv.reader(file)
+        with open('test_dir/card_copy.csv', 'wt', encoding='utf8') as file_copy:
+            writer = csv.writer(file_copy)
+            header = next(reader)
+            writer.writerow(header)
+            for row in reader:
+                if row[2] > '1997-10-13':
+                    break
+                writer.writerow(row)
+            file_copy.flush()
+    print('End')
+
+
+# 如何读写json数据
+# 使用标准库中的json模块，其中loads，dumps函数可以完成json数据的读写
+def json_laod_and_save():
+    import json
+    data = [1, 2, [2, 3], 'abc', {'name': 'james', 'age': 19, 'gender': None}]
+    a = json.dumps(data, sort_keys=True, separators=[',', ':'])
+    print(a)
+    print(json.loads('[1,2,[2,3],"abc",{"age":19,"gender":null,"name":"james"}]'))
+
+    # json.load()和json.dump()针对一个文件描述符
+    with open('test_dir/json_demo.txt', 'w') as file:
+        json.dump(data, file)
+
+    with open('test_dir/json_demo.txt', 'r') as file:
+        load_json = json.load(file)
+        print(load_json)
+
+
 if __name__ == '__main__':
     # tuple_naming()
     # element_couonter()
@@ -484,4 +608,10 @@ if __name__ == '__main__':
     # change_time_format()
     # join_elements_of_list()
     # str_just()
-    strip_chars()
+    # strip_chars()
+    # open_sace_files()
+    # set_file_buffer()
+    # file_status()
+    # temporary_file()
+    # read_csv_demo()
+    json_laod_and_save()
