@@ -1,9 +1,11 @@
 from random import randint
 
-
 # 为元组中的每个元素命名，提高程序可读性
 # 方法1：使用枚举作为index
 # 方法2：使用collections。namedtuple带有名称的元组实现
+import xlwt
+
+
 def tuple_naming():
     def enum_naming():
         NAME, AGE, GENDER, EMAIL = range(4)
@@ -590,6 +592,127 @@ def json_laod_and_save():
         print(load_json)
 
 
+# 如何解析简单的xml文档
+# xml是一种十分常用的标记性语言，可提供统一的方法来描述应用程序的结构化数据
+# 可以使用标准库中的xml.etree.ElementTree其中的parse函数可以解析xml文档
+def parse_xml():
+    from xml.etree.ElementTree import parse
+    file = open('test_dir/demo.xml')
+    et = parse(file)
+    root = et.getroot()
+    print(root.tag)
+    print(root.attrib)
+    print(root.text)
+    for child in root:
+        print(child.get('name'))
+
+    # 查找所有名字为note的节点
+    print(root.findall('note'))
+    # 查找当前节点下的一级节点
+    for note in root.iterfind('note'):
+        print(note.get('name'))
+
+    # 查找当前节点下的所有下级节点
+    for e in root.iter():
+        print(e)
+
+    # 查找当前节点下所有子级特定名称的节点
+    for e in root.iter('from'):
+        print(e)
+
+
+# 如何构建xml文档
+# 可以使用标准库中的xml.etree.ElementTree其中的write函数可以写入文件
+def make_a_xml():
+    from xml.etree.ElementTree import Element, ElementTree, tostring
+
+    e = Element('Data')
+    print(e.tag)
+    e.set('name', 'abc')
+    print(tostring(e))
+    e2 = Element('Row')
+    e3 = Element('Open')
+    e3.text = '8.08'
+    e2.append(e3)
+    print(tostring(e2))
+    e.append(e2)
+    print(tostring(e))
+
+    et = ElementTree(e)
+    et.write('test_dir/demo_2.xml')
+
+
+# 将csv文件写入到xml文件中
+def csv_to_xml():
+    import csv
+    from xml.etree.ElementTree import Element, ElementTree
+
+    def pretty(e, level=0):
+        if len(e) > 0:
+            e.text = '\n' + '\t' * (level + 1)
+            for child in e:
+                pretty(child, level + 2)
+                child.tail = child.tail[:-1]
+        e.tail = '\n' + '\t' * level
+
+    def csvToXml(fname):
+        with open(fname, 'rt', encoding='utf8') as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+
+            root = Element('Data')
+            for row in reader:
+                eRow = Element('Row')
+                root.append(eRow)
+                for tag, text in zip(headers, row):
+                    e = Element(tag)
+                    e.text = text
+                    eRow.append(e)
+        pretty(root)
+        return ElementTree(root)
+
+    et = csvToXml('test_dir/card.csv')
+    et.write('test_dir/card.xml')
+
+
+# 如何读写excel文件
+# 使用第三方库xlrd和xlwt，这两个库分别用于excel读写操作
+def excel_read_and_write():
+    import xlrd
+    book = xlrd.open_workbook('test_dir/demo.xlsx')
+    print(book.sheets())
+    sheet = book.sheet_by_index(0)
+    print(sheet.nrows)
+    print(sheet.ncols)
+    print(sheet.cell(0, 0))
+    print(sheet.row(1))
+    print(sheet.row_values(1, 1))
+
+    def read_and_write():
+        rbook = xlrd.open_workbook('test_dir/demo.xlsx')
+        rsheet = rbook.sheet_by_index(0)
+
+        nc = rsheet.ncols
+        rsheet.put_cell(0, nc, xlrd.XL_CELL_TEXT, u'总分', None)
+
+        for row in range(1, rsheet.nrows):
+            # 除去第一列之后的行元素和
+            t = sum(rsheet.row_values(row, 1))
+            rsheet.put_cell(row, nc, xlrd.XL_CELL_NUMBER, t, None)
+
+        wbook = xlwt.Workbook(encoding='utf8')
+        wsheet = wbook.add_sheet(rsheet.name)
+        # style = xlwt.easyxf('align: vertical center, horizontal center')
+
+        for r in range(rsheet.nrows):
+            for c in range(rsheet.ncols):
+                wsheet.write(r, c, rsheet.cell_value(r, c))
+
+        wbook.save('./test_dir/output.xls')
+
+    read_and_write()
+
+
 if __name__ == '__main__':
     # tuple_naming()
     # element_couonter()
@@ -614,4 +737,8 @@ if __name__ == '__main__':
     # file_status()
     # temporary_file()
     # read_csv_demo()
-    json_laod_and_save()
+    # json_laod_and_save()
+    # parse_xml()
+    # make_a_xml()
+    # csv_to_xml()
+    excel_read_and_write()
