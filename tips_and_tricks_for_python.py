@@ -1,6 +1,7 @@
 """
-This script is copied from:
+References:
 Link: https://www.techbeamers.com/essential-python-tips-tricks-programmers/
+Link：https://github.com/chiphuyen/python-is-cool
 """
 import socket
 import sys
