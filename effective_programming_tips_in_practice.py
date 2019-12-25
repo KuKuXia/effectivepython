@@ -643,36 +643,37 @@ def make_a_xml():
 
 
 # 将csv文件写入到xml文件中
-def csv_to_xml():
+def pretty(e, level=0):
+    if len(e) > 0:
+        e.text = '\n' + '\t' * (level + 1)
+        for child in e:
+            pretty(child, level + 2)
+            child.tail = child.tail[:-1]
+    e.tail = '\n' + '\t' * level
+
+
+def csv_to_the_xml(csv_file_name, xml_file_name):
     import csv
     from xml.etree.ElementTree import Element, ElementTree
+    with open(csv_file_name, 'rt', encoding='utf8') as f:
+        reader = csv.reader(f)
+        headers = next(reader)
 
-    def pretty(e, level=0):
-        if len(e) > 0:
-            e.text = '\n' + '\t' * (level + 1)
-            for child in e:
-                pretty(child, level + 2)
-                child.tail = child.tail[:-1]
-        e.tail = '\n' + '\t' * level
+        root = Element('Data')
+        for row in reader:
+            eRow = Element('Row')
+            root.append(eRow)
+            for tag, text in zip(headers, row):
+                e = Element(tag)
+                e.text = text
+                eRow.append(e)
+    pretty(root)
+    ElementTree(root).write(xml_file_name)
 
-    def csvToXml(fname):
-        with open(fname, 'rt', encoding='utf8') as f:
-            reader = csv.reader(f)
-            headers = next(reader)
 
-            root = Element('Data')
-            for row in reader:
-                eRow = Element('Row')
-                root.append(eRow)
-                for tag, text in zip(headers, row):
-                    e = Element(tag)
-                    e.text = text
-                    eRow.append(e)
-        pretty(root)
-        return ElementTree(root)
-
-    et = csvToXml('test_dir/card.csv')
-    et.write('test_dir/card.xml')
+def csv_to_xml():
+    csv_to_the_xml('test_dir/card.csv', 'test_dir/card.xml')
+    print('csv_to_xml, done!')
 
 
 # 如何读写excel文件
@@ -713,6 +714,276 @@ def excel_read_and_write():
     read_and_write()
 
 
+# 如何派生内置不可变类型并修改其实例化行为
+# 定义类IntTuple继承内置tuple，并且实现__new__，修改实例化行为
+def change_the_immutable_object():
+    class IntTuple(tuple):
+        def __new__(cls, iterable):
+            g = (x for x in iterable if isinstance(x, int) and x > 0)
+            print('__new__ called')
+            return super(IntTuple, cls).__new__(cls, g)
+
+        def __init__(self, iterable):
+            # Before
+            super(IntTuple, self).__init__()
+            # After
+
+    t = IntTuple([1, -1, 'abc', 6, ['x', 'y'], 3])
+    print(t)
+    print('ended')
+
+
+# 如何为创建大量实例节省内存
+# 定义类的__slots__属性，它是用来声明实例属性名字的列表
+def saving_memory_using_slots():
+    class Player1(object):
+        def __init__(self, uid, name, status=0, level=1):
+            params = locals()
+            del params['self']
+            self.__dict__ = params
+
+    class Player2(object):
+        __slots__ = ['uid', 'name', 'status', 'level']
+
+        def __init__(self, uid, name, status=0, level=1):
+            self.uid = uid
+            self.name = name
+            self.status = status
+            self.level = level
+
+    p1 = Player1('0001', 'Jim', status=0, level=2)
+    p2 = Player2('0002', 'Tom', status=3, level=4)
+    import sys
+    print(sys.getsizeof(p1))
+    print(sys.getsizeof(p2))
+    print(set(dir(p1)) - set(dir(p2)))
+    print(p1.__dict__)
+    print(p2.__slots__)
+
+
+# 如何让对象支持上下文管理
+# 上下文管理：比如打开文件，进行操作后需要关闭文件
+# 实现上下文管理协议，需要定义实例的__enter__, __exit__方法，他们分别在with开始和结束时被调用
+def context_management():
+    from socket import socket, AF_INET, SOCK_STREAM
+
+    class LazyConnection:
+        """
+        编写上下文管理器的主要原理是你的代码会放到 with 语句块中执行。 当出现 with 语句的时候，对象的 __enter__() 方法被触发，
+        它返回的值(如果有的话)会被赋值给 as 声明的变量。然后，with 语句块里面的代码开始执行。 最后，__exit__() 方法被触发进行清理工作。
+        """
+
+        def __init__(self, address, family=AF_INET, type=SOCK_STREAM):
+            self.address = address
+            self.family = family
+            self.type = type
+            self.connections = []
+
+        def __enter__(self):
+            sock = socket(self.family, self.type)
+            sock.connect(self.address)
+            self.connections.append(sock)
+            return sock
+
+        def __exit__(self, exc_ty, exc_val, tb):
+            connection = self.connections.pop()
+            print('connection closed')
+            connection.close()
+
+    conn = LazyConnection(('www.python.org', 80))
+    from functools import partial
+    with conn as s1:
+        # conn.__enter__() executes: connection open
+        s1.send(b'GET /index.html HTTP/1.0\r\n')
+        s1.send(b'Host: www.python.org\r\n')
+        s1.send(b'\r\n')
+        resp = b''.join(iter(partial(s1.recv, 8192), b''))
+        print('response 1: ', resp)
+        # conn.__exit__() executes: connection closed
+        with conn as s2:
+            s2.send(b'GET /index.html HTTP/1.0\r\n')
+            s2.send(b'Host: www.python.org\r\n')
+            s2.send(b'\r\n')
+            resp = b''.join(iter(partial(s2.recv, 8192), b''))
+            print('response 2: ', resp)
+            # s1 and s2 are independent sockets
+
+
+# 如何创建可管理的对象属性
+# 形式上是属性访问，但是实际上调用方法
+# 方法：使用property函数为类创建可管理属性，fget/fset/fdel对应相应属性访问
+def manageable_object_property():
+    from math import pi
+    class Circle(object):
+
+        def __init__(self, radius):
+            self.radius = radius
+
+        def get_radius(self):
+            return round(self.radius, 3)
+
+        def set_radius(self, value):
+            if not isinstance(value, (int, float)):
+                raise ValueError('Wrong type.')
+            self.radius = value
+
+        def get_area(self):
+            return self.radius ** 2 * pi
+
+        R = property(get_radius, set_radius)
+
+    c = Circle(1.2)
+    print(c.R)
+    c.R = 20
+    print(c.R)
+
+
+# 如何让类支持比较操作
+# 方法1： 类的比较运算符重载，需要实现以下方法：
+# __it__, __le__, __gt__, __ge__, __eq__, __ne__
+# 方法2： 使用标准库下的functools下的类装饰器total_ordering可以简化该过程
+def comparison_operation():
+    from functools import total_ordering
+    from abc import abstractmethod
+
+    @total_ordering
+    class Shape(object):
+        @abstractmethod
+        def area(self):
+            pass
+
+        def __lt__(self, obj):
+            print('in __lt__')
+            if not isinstance(obj, Shape):
+                raise TypeError('Obj is not Shape')
+            return self.area() < obj.area()
+
+        def __eq__(self, obj):
+            print('in __eq__')
+            if not isinstance(obj, Shape):
+                raise TypeError('Obj is not Shape')
+            return self.area() <= obj.area()
+
+    class Rectangle(Shape):
+        def __init__(self, w, h):
+            self.w = w
+            self.h = h
+
+        def area(self):
+            return self.w * self.h
+
+    class Circle(Shape):
+        def __init__(self, radius):
+            self.radius = radius
+
+        def area(self):
+            return self.radius ** 2 * 3.14
+
+    r1 = Rectangle(5, 3)
+    r2 = Rectangle(4, 4)
+    c1 = Circle(5)
+    print(f'r1: {r1.area()}, r2: {r2.area()}, c1: {c1.area()}')
+    print(r1 < c1)
+    print(r2 == c1)
+    # print(c1 > 1) # raise type error
+
+
+# 如何使用描述符对实例属性做类型检查
+# 使用描述符来实现需要类型检查的属性
+# 分别实现__get__, __set__, __delete__方法
+# 在__set__内使用isinstance函数做类型检查
+def type_check():
+    class Attr(object):
+        def __init__(self, name, type_):
+            self.name = name
+            self.type_ = type_
+
+        def __get__(self, instance, owner):
+            print('in __get__', instance, owner)
+            return instance.__dict__[self.name]
+
+        def __set__(self, key, value):
+            print('in __set__')
+            if not isinstance(value, self.type_):
+                raise TypeError('expected an %s' % self.type_)
+            key.__dict__[self.name] = value
+
+        def __delete__(self, instance):
+            print('in __delete__')
+            del instance.__dict__[self.name]
+
+    class Person(object):
+        name = Attr('name', str)
+        age = Attr('age', int)
+        height = Attr('height', float)
+
+    a = Person()
+    a.name = 'Bob'
+    print(a.name)
+    a.age = 20
+
+
+# 如何在环状数据结构中管理内存
+# 使用标准库weakref，它可以创建一种能访问对象但是不增加引用计数的对象
+def manage_the_memory_of_circle_data_structure():
+    import weakref
+    class Data(object):
+        def __init__(self, value, owner):
+            self.owner = weakref.ref(owner)
+            self.value = value
+
+        def __str__(self):
+            return f'{self.owner()} data, value is {self.value}'
+
+        def __del__(self):
+            print('in Data.__del__')
+
+    class Node(object):
+        def __init__(self, value):
+            self.data = Data(value, self)
+
+        def __del__(self):
+            print('in Node.__del__')
+
+    node = Node(100)
+    del node
+
+
+# 如何通过实例方法名字的字符串调用方法
+# 使用内置函数getattr，通过名字在实例上获取方法对象，然后调用
+
+def different_method_names():
+    from demo_import_all import Circle, Triangle, Rectangle
+
+    def get_area(shape):
+        for name in ('area', 'get_the_area', 'get_area'):
+            f = getattr(shape, name, None)
+            if f:
+                return f()
+
+    shape1 = Circle(2)
+    shape2 = Triangle(3, 4, 5)
+    shape3 = Rectangle(4, 5)
+    shapes = [shape1, shape2, shape3]
+    print(list(map(get_area, shapes)))
+
+
+# 如何使用多线程
+def multi_threading():
+    import requests
+    from io import StringIO
+    def download(url):
+        response = requests.get(url, timeout=3)
+        if response.ok:
+            return StringIO(response.content)
+
+    url = ''
+    rf = download(url)
+    if rf:
+        with open('test_dir/000001.xml', 'wb') as wf:
+            csv_to_the_xml(rf, wf)
+
+
 if __name__ == '__main__':
     # tuple_naming()
     # element_couonter()
@@ -740,5 +1011,13 @@ if __name__ == '__main__':
     # json_laod_and_save()
     # parse_xml()
     # make_a_xml()
-    # csv_to_xml()
-    excel_read_and_write()
+    csv_to_xml()
+    # excel_read_and_write()
+    # change_the_immutable_object()
+    # saving_memory_using_slots()
+    # context_management()
+    # manageable_object_property()
+    # comparison_operation()
+    # type_check()
+    # manage_the_memory_of_circle_data_structure()
+    # different_method_names()
