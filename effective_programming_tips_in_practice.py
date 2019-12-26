@@ -658,7 +658,7 @@ def csv_to_the_xml(csv_file_name, xml_file_name):
     reader = csv.reader(csv_file_name)
     headers = next(reader)
     headers = list(map(lambda h: h.replace(' ', ''), headers))
-    print(headers)
+    # print(headers)
 
     root = Element('Data')
     for row in reader:
@@ -973,10 +973,13 @@ def different_method_names():
 
 
 # 如何使用多线程
+# 使用标准库threading.Thread创建线程，在每一个线程中下载并且转换一只股票
 def multi_threading():
     import requests
     from io import StringIO
     from note_demo import cookies
+    from threading import Thread
+
     def download(url):
         s = requests.Session()
         response = s.get(
@@ -986,11 +989,88 @@ def multi_threading():
         if response.ok:
             return StringIO(response.text)
 
-    url = 'https://finance.yahoo.com/quote/000001.SZ'
-    rf = download(url)
-    if rf:
-        csv_to_the_xml(rf, 'test_dir/000001.xml')
+    def handle(sid):
+        print(f"Download...{sid}")
+        url = 'https://finance.yahoo.com/quote/%s.SZ'
+        url %= str(sid).rjust(6, '0')
+        rf = download(url)
+        if rf is None: return
+        print("Convert to xml...(%d)" % sid)
+        xml_file_name = str(sid).rjust(6, '0') + '.xml'
+        with open(xml_file_name, 'wb') as wf:
+            csv_to_the_xml(rf, 'test_dir/finance/' + xml_file_name)
 
+    # 简单使用
+    t = Thread(target=handle, args=(1,))
+    t.start()
+
+    # 常见是新建一个类实现
+    class MyThread(Thread):
+        def __init__(self, sid):
+            super().__init__()
+            self.sid = sid
+
+        def run(self):
+            handle(self.sid)
+
+    threads = []
+    for i in range(1, 11):
+        t = MyThread(i)
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    print('\nMain thread done!')
+
+    # 如何线程间通信
+    # 由于全局解释器锁的存在，多线程进行CPU密集型操作并不能提高执行效率，因此：
+    # 使用多个DownloadThread线程进行下载，（I/O操作）
+    # 使用一个ConvertThread线程进行转换，（CPU密集型操作）
+    # Download线程把下载数据放入队列，Convert线程从队列中提取数据
+    # 典型的生产者消费者模型
+
+    # 使用标准库中Quene.Queue，它是一个线程安全的队列
+    # from collections import deque
+    from Queue import Queue
+    # 共享数据队列
+    q = Queue()
+
+    class DownloadThread(Thread):
+        def __init__(self, sid):
+            super(DownloadThread, self).__init__()
+            self.sid = sid
+            self.url = 'https://finance.yahoo.com/quote/%s.SZ'
+            self.url %= str(sid).rjust(6, '0')
+
+        def download(self, url):
+            s = requests.Session()
+            response = s.get(
+                "https://query1.finance.yahoo.com/v7/finance/download/000001.SZ?period1=1545803369&period2=1577339369&interval=1d&events=history&crumb=60oUVJrpMif",
+                cookies=cookies, verify=False)
+
+            if response.ok:
+                return StringIO(response.text)
+
+        def run(self):
+            data = self.download(self.url)
+            # 多线程访问同一个队列不安全，需要添加锁
+
+            q.append((self.sid, data))
+
+    class CovertThread(Thread):
+        def __init__(self):
+            super(CovertThread, self).__init__()
+
+        def csv_to_xml(self, csv_file, xml_file):
+            csv_to_the_xml(csv_file, xml_file)
+
+        def run(self):
+            # 1. sid, data
+
+            # 2.
+            file_name = str(sid).rjust(6, '0') + '.xml'
+            with open(file_name, 'wb') as wf:
+                self.csv_to_xml(data, wf)
 
 if __name__ == '__main__':
     # tuple_naming()
