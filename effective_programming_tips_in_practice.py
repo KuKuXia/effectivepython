@@ -655,24 +655,28 @@ def pretty(e, level=0):
 def csv_to_the_xml(csv_file_name, xml_file_name):
     import csv
     from xml.etree.ElementTree import Element, ElementTree
-    with open(csv_file_name, 'rt', encoding='utf8') as f:
-        reader = csv.reader(f)
-        headers = next(reader)
+    reader = csv.reader(csv_file_name)
+    headers = next(reader)
+    headers = list(map(lambda h: h.replace(' ', ''), headers))
+    print(headers)
 
-        root = Element('Data')
-        for row in reader:
-            eRow = Element('Row')
-            root.append(eRow)
-            for tag, text in zip(headers, row):
-                e = Element(tag)
-                e.text = text
-                eRow.append(e)
+    root = Element('Data')
+    for row in reader:
+        eRow = Element('Row')
+        root.append(eRow)
+        for tag, text in zip(headers, row):
+            e = Element(tag)
+            e.text = text
+            eRow.append(e)
     pretty(root)
-    ElementTree(root).write(xml_file_name)
+    e_root = ElementTree(root)
+    e_root.write(xml_file_name)
+    print("Saved the xml file in ", xml_file_name)
 
 
 def csv_to_xml():
-    csv_to_the_xml('test_dir/card.csv', 'test_dir/card.xml')
+    with open('test_dir/card.csv', 'rt', encoding='utf8') as csv_file:
+        csv_to_the_xml(csv_file, 'test_dir/card.xml')
     print('csv_to_xml, done!')
 
 
@@ -972,16 +976,20 @@ def different_method_names():
 def multi_threading():
     import requests
     from io import StringIO
+    from note_demo import cookies
     def download(url):
-        response = requests.get(url, timeout=3)
-        if response.ok:
-            return StringIO(response.content)
+        s = requests.Session()
+        response = s.get(
+            "https://query1.finance.yahoo.com/v7/finance/download/000001.SZ?period1=1545803369&period2=1577339369&interval=1d&events=history&crumb=60oUVJrpMif",
+            cookies=cookies, verify=False)
 
-    url = ''
+        if response.ok:
+            return StringIO(response.text)
+
+    url = 'https://finance.yahoo.com/quote/000001.SZ'
     rf = download(url)
     if rf:
-        with open('test_dir/000001.xml', 'wb') as wf:
-            csv_to_the_xml(rf, wf)
+        csv_to_the_xml(rf, 'test_dir/000001.xml')
 
 
 if __name__ == '__main__':
@@ -1011,7 +1019,7 @@ if __name__ == '__main__':
     # json_laod_and_save()
     # parse_xml()
     # make_a_xml()
-    csv_to_xml()
+    # csv_to_xml()
     # excel_read_and_write()
     # change_the_immutable_object()
     # saving_memory_using_slots()
@@ -1021,3 +1029,4 @@ if __name__ == '__main__':
     # type_check()
     # manage_the_memory_of_circle_data_structure()
     # different_method_names()
+    multi_threading()
