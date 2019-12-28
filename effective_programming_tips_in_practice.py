@@ -972,13 +972,29 @@ def different_method_names():
     print(list(map(get_area, shapes)))
 
 
+# 压缩文件
+def tarXML(tar_file_name):
+    import tarfile
+    import os
+    tar_file = tarfile.open(tar_file_name, 'w:gz')
+    for name in os.listdir('test_dir/finance'):
+        if name.endswith('.xml'):
+            tar_file.add(os.path.join('test_dir/finance/', name))
+            # 删除源文件
+            # os.remove(name)
+    tar_file.close()
+    # 如果没有一个文件被压缩哦，就删除tar文件
+    if not tar_file.members:
+        os.remove(tar_file_name)
+
+
 # 如何使用多线程
 # 使用标准库threading.Thread创建线程，在每一个线程中下载并且转换一只股票
 def multi_threading():
     import requests
     from io import StringIO
     from note_demo import cookies
-    from threading import Thread
+    from threading import Thread, Event
 
     def download(url):
         s = requests.Session()
@@ -1001,8 +1017,10 @@ def multi_threading():
             csv_to_the_xml(rf, 'test_dir/finance/' + xml_file_name)
 
     # 简单使用
-    t = Thread(target=handle, args=(1,))
-    t.start()
+    def simple():
+        t = Thread(target=handle, args=(1,))
+        t.start()
+        t.join()
 
     # 常见是新建一个类实现
     class MyThread(Thread):
@@ -1013,34 +1031,37 @@ def multi_threading():
         def run(self):
             handle(self.sid)
 
-    threads = []
-    for i in range(1, 11):
-        t = MyThread(i)
-        threads.append(t)
-        t.start()
-    for t in threads:
-        t.join()
-    print('\nMain thread done!')
+    def serial_threading():
+        threads = []
+        for i in range(1, 11):
+            t = MyThread(i)
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        print('\nMain thread done!')
 
     # 如何线程间通信
     # 由于全局解释器锁的存在，多线程进行CPU密集型操作并不能提高执行效率，因此：
     # 使用多个DownloadThread线程进行下载，（I/O操作）
     # 使用一个ConvertThread线程进行转换，（CPU密集型操作）
     # Download线程把下载数据放入队列，Convert线程从队列中提取数据
+    # 线程间的事件通知，可以使用标准库中的Threading.Event
+    # 等待事件一端调用wait，等待事件
+    # 通知事件一端调用set，通知事件
     # 典型的生产者消费者模型
 
     # 使用标准库中Quene.Queue，它是一个线程安全的队列
     # from collections import deque
-    from Queue import Queue
-    # 共享数据队列
-    q = Queue()
-
+    from queue import Queue
     class DownloadThread(Thread):
-        def __init__(self, sid):
+        def __init__(self, sid, queue):
             super(DownloadThread, self).__init__()
             self.sid = sid
             self.url = 'https://finance.yahoo.com/quote/%s.SZ'
             self.url %= str(sid).rjust(6, '0')
+            # 共享数据队列
+            self.queue = queue
 
         def download(self, url):
             s = requests.Session()
@@ -1052,25 +1073,102 @@ def multi_threading():
                 return StringIO(response.text)
 
         def run(self):
+            print(f'Download: {self.sid}')
             data = self.download(self.url)
-            # 多线程访问同一个队列不安全，需要添加锁
 
-            q.append((self.sid, data))
+            # 多线程访问同一个队列不安全，需要添加锁，使用贤臣安全的Queue
+            self.queue.put((self.sid, data))
 
     class CovertThread(Thread):
-        def __init__(self):
+        def __init__(self, queue, convertEvent, tarEvent):
             super(CovertThread, self).__init__()
+            self.queue = queue
+            self.convertEvent = convertEvent
+            self.tarEvent = tarEvent
 
         def csv_to_xml(self, csv_file, xml_file):
             csv_to_the_xml(csv_file, xml_file)
 
         def run(self):
-            # 1. sid, data
+            # 转换文件数
+            count = 0
+            while True:
+                sid, data = self.queue.get()
+                print(f'Convert:  {sid}')
+                # 判断程序结束
+                if sid == -1:
+                    self.convertEvent.set()
+                    self.tarEvent.wait()
+                    break
+                if data:
+                    file_name = 'test_dir/finance/' + str(sid).rjust(6, '0') + '.xml'
+                    with open(file_name, 'wb') as wf:
+                        self.csv_to_xml(data, wf)
+                    count += 1
+                    if count == 5:
+                        # 转换完成5个，通知打包线程
+                        self.convertEvent.set()
+                        # 等待打包线程结束
+                        self.tarEvent.wait()
+                        # 复位打包线程
+                        self.tarEvent.clear()
+                        count = 0
 
-            # 2.
-            file_name = str(sid).rjust(6, '0') + '.xml'
-            with open(file_name, 'wb') as wf:
-                self.csv_to_xml(data, wf)
+    class TarThread(Thread):
+        def __init__(self, convertEvent, tarEvent):
+            super().__init__()
+            self.count = 0
+            self.convertEvent = convertEvent
+            self.tarEvent = tarEvent
+            # 在上面的下载和转换线程结束后，打包线程也结束，使用守护线程自动实现
+            self.setDaemon(True)
+
+        def tar_xml(self):
+            self.count += 1
+            file_name = 'test_dir/finance/%d.tgz' % self.count
+            tarXML(file_name)
+            print('Saved the tar file: ', file_name)
+
+        def run(self):
+            while True:
+                self.convertEvent.wait()
+                self.tar_xml()
+
+                # 重复使用该事件
+                self.convertEvent.clear()
+                # 打包完成，设置打包事件为true
+                self.tarEvent.set()
+
+    def multi_threading():
+        q = Queue()
+
+        # 定义转换和打包事件
+        convert_event = Event()
+        tar_event = Event()
+
+        # 定义三个线程
+        download_thread = [DownloadThread(i, q) for i in range(1, 11)]
+        convert_thread = CovertThread(q, convert_event, tar_event)
+        tar_thread = TarThread(convert_event, tar_event)
+
+        # 开始下载线程
+        for t in download_thread:
+            t.start()
+        print('Download threading finished.')
+        # 开始转换线程
+        convert_thread.start()
+
+        # 开始打包线程
+        tar_thread.start()
+
+        # 等待下载线程全部下载完成
+        for t in download_thread:
+            t.join()
+        # 程序结束，放入结束标志
+        q.put((-1, None))
+
+    # serial_threading()
+    multi_threading()
 
 if __name__ == '__main__':
     # tuple_naming()
@@ -1110,3 +1208,4 @@ if __name__ == '__main__':
     # manage_the_memory_of_circle_data_structure()
     # different_method_names()
     multi_threading()
+    # tarXML('test_dir/finance/test.tgz')
